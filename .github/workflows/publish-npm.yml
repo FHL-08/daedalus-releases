@@ -43,6 +43,10 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 24
+          # registry-url is required for npm trusted publishing: setup-node
+          # only writes the OIDC-capable registry config when it's set.
+          registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false
 
       # npm trusted publishing requires npm >= 11.5.1; keep ahead of the
       # bundled version so the OIDC exchange is available.
@@ -68,7 +72,9 @@ jobs:
           # at the private source repo, so npm's auto-provenance validation
           # against this workflow's repo would fail (E422) — and provenance
           # minted here would misattribute the source anyway.
-          args=(--tag latest --access public --provenance=false)
+          # --loglevel verbose surfaces the OIDC exchange result in the log
+          # if trusted publishing fails again.
+          args=(--tag latest --access public --provenance=false --loglevel verbose)
           if [[ "${{ inputs.dry_run }}" == "true" ]]; then
             args+=(--dry-run)
           fi
