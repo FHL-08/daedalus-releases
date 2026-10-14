@@ -1,2 +1,3 @@
 # daedalus-releases
-Daedalus desktop installers and auto-update feed (binaries only; source lives elsewhere)
+
+Daedalus desktop installers, auto-update feed, and npm publish staging — binaries only; the source repo is private.

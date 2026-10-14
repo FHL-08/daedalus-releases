@@ -1,0 +1,67 @@
+name: Publish npm
+
+# Publishes the daedalus-dev tarball attached to the draft release v$version.
+# Runs on GitHub-hosted ubuntu-latest because npm trusted publishing (OIDC)
+# does not support self-hosted runners — this job has no npm token at all;
+# `npm publish` authenticates via the id-token OIDC exchange.
+#
+# Dispatched by the Ship workflow in the private source repo after it creates
+# the draft release. contents:write is needed so `gh release download` can
+# read assets on the draft release.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version (tag v<version> holds the tarball asset)"
+        required: true
+        type: string
+      sha256:
+        description: "Expected sha256 of daedalus-dev-<version>.tgz"
+        required: true
+        type: string
+      dry_run:
+        description: "Run npm publish --dry-run instead of a real publish"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  publish-npm:
+    name: Publish daedalus-dev to npm
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      # npm trusted publishing requires npm >= 11.5.1; keep ahead of the
+      # bundled version so the OIDC exchange is available.
+      - name: Upgrade npm
+        run: npm install -g "npm@^11.15"
+
+      - name: Download tarball from draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "v${{ inputs.version }}" \
+            -R "${{ github.repository }}" \
+            -p 'daedalus-dev-*.tgz' \
+            --clobber
+
+      - name: Verify sha256
+        run: |
+          echo "${{ inputs.sha256 }}  daedalus-dev-${{ inputs.version }}.tgz" | sha256sum --check -
+
+      - name: Publish
+        run: |
+          args=(--tag latest --access public)
+          if [[ "${{ inputs.dry_run }}" == "true" ]]; then
+            args+=(--dry-run)
+          fi
+          npm publish "./daedalus-dev-${{ inputs.version }}.tgz" "${args[@]}"
