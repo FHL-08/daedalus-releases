@@ -1,5 +1,9 @@
 name: Publish npm
 
+# The run name doubles as the dispatch correlation key: ship.yml finds the
+# run it triggered by matching this exact display title.
+run-name: Publish daedalus-dev ${{ inputs.version }} ${{ inputs.sha256 }}
+
 # Publishes the daedalus-dev tarball attached to the draft release v$version.
 # Runs on GitHub-hosted ubuntu-latest because npm trusted publishing (OIDC)
 # does not support self-hosted runners — this job has no npm token at all;
